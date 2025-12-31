@@ -1,0 +1,87 @@
+# Illegal-Logging-Detection-with-Drones (Synthetic Data Example)
+# This project simulates drone-based detection of illegal logging using synthetic image features.
+
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, accuracy_score
+import matplotlib.pyplot as plt
+
+# -----------------------------
+# 1. Generate Synthetic Data
+# -----------------------------
+np.random.seed(42)
+num_samples = 1000
+
+# Synthetic features extracted from drone images
+data = {
+    "tree_density": np.random.uniform(0, 100, num_samples),      # trees per area
+    "canopy_gap": np.random.uniform(0, 50, num_samples),         # open canopy percentage
+    "road_presence": np.random.randint(0, 2, num_samples),       # logging roads detected
+    "vehicle_presence": np.random.randint(0, 2, num_samples),   # trucks detected
+    "sound_intensity": np.random.uniform(20, 120, num_samples),  # chainsaw noise level
+}
+
+df = pd.DataFrame(data)
+
+# Label: 1 = Illegal Logging, 0 = Normal Forest
+df["illegal_logging"] = (
+    (df["tree_density"] < 30) &
+    (df["canopy_gap"] > 20) &
+    (df["vehicle_presence"] == 1)
+).astype(int)
+
+# -----------------------------
+# 2. Train-Test Split
+# -----------------------------
+X = df.drop("illegal_logging", axis=1)
+y = df["illegal_logging"]
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+# -----------------------------
+# 3. Train Model
+# -----------------------------
+model = RandomForestClassifier(
+    n_estimators=100,
+    random_state=42
+)
+model.fit(X_train, y_train)
+
+# -----------------------------
+# 4. Evaluate Model
+# -----------------------------
+y_pred = model.predict(X_test)
+
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+
+# -----------------------------
+# 5. Feature Importance
+# -----------------------------
+importances = model.feature_importances_
+features = X.columns
+
+plt.figure()
+plt.barh(features, importances)
+plt.title("Feature Importance - Illegal Logging Detection")
+plt.xlabel("Importance Score")
+plt.ylabel("Features")
+plt.show()
+
+# -----------------------------
+# 6. Example Prediction
+# -----------------------------
+sample = pd.DataFrame([{
+    "tree_density": 25,
+    "canopy_gap": 35,
+    "road_presence": 1,
+    "vehicle_presence": 1,
+    "sound_intensity": 95
+}])
+
+prediction = model.predict(sample)
+print("Illegal Logging Detected" if prediction[0] == 1 else "No Illegal Logging Detected")
